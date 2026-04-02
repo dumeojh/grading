@@ -11,8 +11,6 @@
     <style>
         :root { --primary: #2c3e50; --accent: #e74c3c; --bg: #f4f6f9; --border: #ddd; }
         body { font-family: 'Pretendard', sans-serif; background: var(--bg); margin: 0; display: flex; height: 100vh; overflow: hidden; }
-        
-        /* 좌측 학생 리스트 패널 */
         #sidebar { width: 300px; background: #fff; border-right: 1px solid var(--border); display: flex; flex-direction: column; }
         .sidebar-header { padding: 20px; background: var(--primary); color: white; font-size: 1.2em; font-weight: bold; text-align: center; }
         .controls { padding: 10px; border-bottom: 1px solid var(--border); display: flex; gap: 5px; }
@@ -25,7 +23,6 @@
         .badge-done { background: #2ecc71; color: white; padding: 3px 8px; border-radius: 12px; font-size: 0.8em; font-weight: normal; }
         .badge-wait { background: #f1c40f; color: #333; padding: 3px 8px; border-radius: 12px; font-size: 0.8em; font-weight: normal; }
 
-        /* 우측 채점 패널 */
         #mainContent { flex: 1; display: flex; padding: 20px; gap: 20px; overflow-y: auto; background: var(--bg); }
         .paper-view { flex: 2; background: white; padding: 40px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
         .grading-panel { flex: 1; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); position: sticky; top: 0; height: fit-content; }
@@ -54,8 +51,7 @@
     <div class="controls">
         <button onclick="fetchData()">🔄 새로고침</button>
     </div>
-    <ul id="studentList">
-        </ul>
+    <ul id="studentList"></ul>
 </div>
 
 <div id="loading">데이터를 불러오는 중입니다... 잠시만 기다려주세요.</div>
@@ -70,29 +66,17 @@
     <div class="grading-panel">
         <h2>✏️ 평가표 입력</h2>
         <input type="hidden" id="currentRow">
-        <div class="form-group">
-            <label>(1) 수학적 특징 해석 (20점)</label>
-            <input type="number" id="score1" max="20" min="0">
-        </div>
-        <div class="form-group">
-            <label>(2) 실세계 현상 연관성 (20점)</label>
-            <input type="number" id="score2" max="20" min="0">
-        </div>
-        <div class="form-group">
-            <label>(3) 가치 성찰 및 논리성 (10점)</label>
-            <input type="number" id="score3" max="10" min="0">
-        </div>
-        <div class="form-group">
-            <label>💬 교사 코멘트 (피드백)</label>
-            <textarea id="feedback" rows="4" placeholder="학생에게 전달할 피드백..."></textarea>
-        </div>
+        <div class="form-group"><label>(1) 수학적 특징 해석 (20점)</label><input type="number" id="score1" max="20" min="0"></div>
+        <div class="form-group"><label>(2) 실세계 현상 연관성 (20점)</label><input type="number" id="score2" max="20" min="0"></div>
+        <div class="form-group"><label>(3) 가치 성찰 및 논리성 (10점)</label><input type="number" id="score3" max="10" min="0"></div>
+        <div class="form-group"><label>💬 교사 코멘트 (피드백)</label><textarea id="feedback" rows="4" placeholder="학생에게 전달할 피드백..."></textarea></div>
         <button class="btn-submit" onclick="submitGrade()">점수 저장하기</button>
     </div>
 </div>
 
 <script>
-    // [중요] 아래에 선생님의 Google Apps Script 웹 앱 주소를 붙여넣으세요!
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxdOtWxBW7v38W2_sjNlN4jIU5wPQ8iJBVduARdW6lLYqbrNni2Mb-JtgcdyS4LMquw/exec";
+    // 선생님의 스크립트 주소
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw8mnt9S5Vx3sfX8tGNPkoMouATOMDq-Oo_qoevLH1J5G5VVb5EmBfRTx0fhBbEqaFJ/exec";
     
     let allData = [];
 
@@ -106,9 +90,8 @@
         try {
             const response = await fetch(SCRIPT_URL);
             const data = await response.json();
-            allData = data.filter(d => d['반'] && d['이름']); // 유효한 데이터만 필터링
+            allData = data.filter(d => d['반'] && d['이름']);
             
-            // 반, 번호 순으로 정렬
             allData.sort((a, b) => {
                 if(a['반'] !== b['반']) return a['반'].localeCompare(b['반']);
                 return parseInt(a['번호']) - parseInt(b['번호']);
@@ -118,7 +101,7 @@
             document.getElementById('loading').style.display = 'none';
             document.getElementById('mainContent').style.display = 'flex';
         } catch (error) {
-            alert("데이터를 불러오는데 실패했습니다. 주소를 다시 확인해주세요.");
+            alert("데이터를 불러오는데 실패했습니다. 구글 앱스 스크립트 배포 상태를 확인해주세요.");
         }
     }
 
@@ -143,33 +126,52 @@
         const student = allData[index];
         document.getElementById('currentRow').value = student.row;
         
-        // 답안지 렌더링
+        // 참고자료 텍스트 가공
+        let refsText = [student['참고자료1'], student['참고자료2'], student['참고자료3']]
+            .filter(r => r && String(r).trim() !== "").join('<br>');
+        if (!refsText) refsText = "없음";
+        
         const paper = document.getElementById('paperContent');
         paper.innerHTML = `
-            <h2>${student['기사제목']}</h2>
-            <div class="meta-info">제출일시: ${new Date(student['제출시간']).toLocaleString()} | ${student['반']}반 ${student['번호']}번 ${student['이름']} | 영역: <b>${student['분석영역']}</b></div>
+            <h2>${student['기사제목'] || '제목 없음'}</h2>
+            <div class="meta-info">제출일시: ${student['제출시간'] ? new Date(student['제출시간']).toLocaleString() : '기록없음'} | ${student['반']}반 ${student['번호']}번 ${student['이름']} | 영역: <b>${student['분석영역']}</b></div>
             
+            <div class="answer-box">
+                <div class="answer-title">📚 참고자료</div>
+                ${refsText}
+            </div>
+            
+            <div class="answer-box">
+                <div class="answer-title">💡 주제 선정 이유</div>
+                ${student['선정 이유'] || ''}
+            </div>
+
+            <div class="answer-box">
+                <div class="answer-title">📊 입력한 원본 데이터 (x, y)</div>
+                ${student['입력 데이터'] || ''}
+            </div>
+
             <div class="formula-box">
-                ${student['산출된 함수식']}
+                <b>산출된 함수식</b><br>
+                ${student['산출된 함수식'] || ''}
             </div>
 
             <div class="answer-box">
                 <div class="answer-title">(1) 그래프의 수학적 특징</div>
-                ${student['(1) 수학적 특징']}
+                ${student['(1) 수학적 특징'] || ''}
             </div>
             <div class="answer-box">
                 <div class="answer-title">(2) 실세계 현상 해석</div>
-                ${student['(2) 현상 해석']}
+                ${student['(2) 현상 해석'] || ''}
             </div>
             <div class="answer-box">
                 <div class="answer-title">(3) 수학적 유용성 및 가치 성찰</div>
-                ${student['(3) 가치 성찰']}
+                ${student['(3) 가치 성찰'] || ''}
             </div>
         `;
-        // 수식 렌더링 실행
+        
         MathJax.typesetPromise([paper]);
 
-        // 채점 패널 기존 점수 불러오기
         document.getElementById('score1').value = student['채점_특징(20점)'] || '';
         document.getElementById('score2').value = student['채점_해석(20점)'] || '';
         document.getElementById('score3').value = student['채점_성찰(10점)'] || '';
@@ -199,9 +201,8 @@
                 mode: 'no-cors',
                 body: JSON.stringify(payload)
             });
-            alert("채점 결과가 저장되었습니다.");
+            alert("✅ 채점 결과가 저장되었습니다.");
             
-            // 로컬 데이터도 업데이트하여 화면 반영
             const student = allData.find(d => d.row === parseInt(row));
             student['채점_특징(20점)'] = payload.score1;
             student['채점_해석(20점)'] = payload.score2;
@@ -209,9 +210,8 @@
             student['총점'] = Number(payload.score1) + Number(payload.score2) + Number(payload.score3);
             student['교사 피드백'] = payload.feedback;
             
-            renderList(); // 뱃지 상태 업데이트
+            renderList(); 
             
-            // 다음 학생 자동으로 선택해주기 (편의성)
             const currentIndex = allData.findIndex(d => d.row === parseInt(row));
             if(currentIndex < allData.length - 1) {
                 const nextLi = document.querySelectorAll('.student-item')[currentIndex + 1];
