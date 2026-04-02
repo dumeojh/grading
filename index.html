@@ -3,201 +3,228 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>2026 안성여고 교육과정 박람회</title>
+    <title>수학 수행평가 교사 채점 대시보드</title>
+    <script>
+        window.MathJax = { tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] } };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <style>
-        :root { --primary: #1a73e8; --bg: #f8f9fa; --border: #e0e0e0; }
-        * { box-sizing: border-box; }
-        body { font-family: 'Pretendard', sans-serif; margin: 0; display: flex; flex-direction: column; height: 100vh; background: var(--bg); overflow: hidden; }
+        :root { --primary: #2c3e50; --accent: #e74c3c; --bg: #f4f6f9; --border: #ddd; }
+        body { font-family: 'Pretendard', sans-serif; background: var(--bg); margin: 0; display: flex; height: 100vh; overflow: hidden; }
+        
+        /* 좌측 학생 리스트 패널 */
+        #sidebar { width: 300px; background: #fff; border-right: 1px solid var(--border); display: flex; flex-direction: column; }
+        .sidebar-header { padding: 20px; background: var(--primary); color: white; font-size: 1.2em; font-weight: bold; text-align: center; }
+        .controls { padding: 10px; border-bottom: 1px solid var(--border); display: flex; gap: 5px; }
+        .controls button { flex: 1; padding: 8px; cursor: pointer; border: 1px solid #ccc; background: #eee; border-radius: 4px; }
+        .controls button:hover { background: #ddd; }
+        #studentList { flex: 1; overflow-y: auto; list-style: none; padding: 0; margin: 0; }
+        .student-item { padding: 15px 20px; border-bottom: 1px solid var(--border); cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: 0.2s; }
+        .student-item:hover { background: #f0f8ff; }
+        .student-item.active { background: #eef2f7; border-left: 5px solid var(--accent); font-weight: bold; }
+        .badge-done { background: #2ecc71; color: white; padding: 3px 8px; border-radius: 12px; font-size: 0.8em; font-weight: normal; }
+        .badge-wait { background: #f1c40f; color: #333; padding: 3px 8px; border-radius: 12px; font-size: 0.8em; font-weight: normal; }
 
-        header { background: var(--primary); color: white; padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
-        .logo { font-size: 1.1rem; font-weight: bold; }
-        .nav { display: flex; gap: 10px; list-style: none; margin: 0; padding: 0; }
-        .nav li { font-size: 0.85rem; cursor: pointer; padding: 5px 8px; border-radius: 4px; border: 1px solid transparent; }
-        .login-btn { background: white; color: var(--primary); border: none; font-weight: bold; cursor: pointer; }
+        /* 우측 채점 패널 */
+        #mainContent { flex: 1; display: flex; padding: 20px; gap: 20px; overflow-y: auto; background: var(--bg); }
+        .paper-view { flex: 2; background: white; padding: 40px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        .grading-panel { flex: 1; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); position: sticky; top: 0; height: fit-content; }
+        
+        h2 { border-bottom: 2px solid var(--primary); padding-bottom: 10px; color: var(--primary); margin-top: 0; }
+        .meta-info { color: #7f8c8d; font-size: 0.9em; margin-bottom: 20px; }
+        .formula-box { background: #fef4f4; padding: 20px; border-radius: 8px; text-align: center; font-size: 1.4em; border: 1px solid #fab1a0; margin: 20px 0; }
+        .answer-box { background: #f9f9f9; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #3498db; line-height: 1.6; white-space: pre-wrap; }
+        .answer-title { font-weight: bold; color: var(--primary); margin-bottom: 8px; }
 
-        main { flex: 1; display: flex; overflow: hidden; flex-direction: row; }
-
-        .column { display: flex; flex-direction: column; background: white; border-right: 1px solid var(--border); transition: all 0.3s ease; }
-        .column-header { background: #eee; padding: 12px; font-weight: bold; font-size: 0.9rem; border-bottom: 1px solid var(--border); }
-        .list-container { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
-
-        #col-group { flex: 0 0 160px; }
-        #col-subject { flex: 0 0 220px; background: #fafafa; }
-        #col-detail { flex: 1; border-right: none; }
-
-        .item { padding: 15px 12px; border-bottom: 1px solid #eee; cursor: pointer; font-size: 0.95rem; display: flex; align-items: center; justify-content: space-between; }
-        .item:hover { background: #f1f3f4; }
-        .item.active { background: #e8f0fe; color: var(--primary); font-weight: bold; border-left: 4px solid var(--primary); }
-
-        iframe { width: 100%; height: 100%; border: none; }
-
-        #loading { position: fixed; top:0; left:0; width:100%; height:100%; background:white; display:flex; justify-content:center; align-items:center; z-index:9999; font-weight:bold; flex-direction: column; gap: 10px; }
-
-        @media (max-width: 768px) {
-            main { flex-direction: column; overflow-y: auto; }
-            .column { width: 100%; flex: none; border-right: none; border-bottom: 1px solid var(--border); height: auto; }
-            #col-group, #col-subject { max-height: 250px; }
-            #col-detail { height: 600px; }
-        }
-
-        #login-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); justify-content: center; align-items: center; z-index: 1000; }
-        .modal-box { background: white; padding: 25px; border-radius: 12px; width: 90%; max-width: 320px; }
-        .modal-box input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 6px; }
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
+        .form-group input[type="number"] { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; font-size: 16px; box-sizing: border-box; }
+        .form-group textarea { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; font-size: 14px; box-sizing: border-box; resize: vertical; }
+        
+        .btn-submit { background: var(--accent); color: white; padding: 15px; width: 100%; border: none; border-radius: 8px; font-size: 1.1em; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        .btn-submit:hover { background: #c0392b; }
+        #loading { display: none; text-align: center; padding: 50px; font-size: 1.2em; color: #555; width: 100%; }
+        .empty-state { text-align: center; color: #999; margin-top: 100px; font-size: 1.2em; }
     </style>
 </head>
 <body>
 
-    <div id="loading">
-        <div>데이터를 불러오는 중입니다...</div>
-        <div style="font-size:0.8rem; color:#888;">잠시만 기다려주세요.</div>
+<div id="sidebar">
+    <div class="sidebar-header">📊 답안 목록</div>
+    <div class="controls">
+        <button onclick="fetchData()">🔄 새로고침</button>
     </div>
-
-    <header>
-        <div class="logo">안성여고 교육과정 박람회</div>
-        <ul class="nav">
-            <li onclick="location.reload()" style="border: 1px solid white;">새로고침</li>
-            <li><button class="login-btn" onclick="openLogin()">로그인</button></li>
+    <ul id="studentList">
         </ul>
-    </header>
+</div>
 
-    <main>
-        <section class="column" id="col-group">
-            <div class="column-header">교과군</div>
-            <div id="group-list" class="list-container"></div>
-        </section>
+<div id="loading">데이터를 불러오는 중입니다... 잠시만 기다려주세요.</div>
 
-        <section class="column" id="col-subject">
-            <div class="column-header">과목 선택</div>
-            <div id="subject-list" class="list-container">
-                <p style="text-align:center; color:#999; margin-top:30px; font-size:0.8rem;">교과군을 선택하세요.</p>
-            </div>
-        </section>
-
-        <section class="column" id="col-detail">
-            <div class="column-header">과목 상세 안내 (PDF)</div>
-            <iframe id="pdf-view" src="about:blank"></iframe>
-        </section>
-    </main>
-
-    <div id="login-modal">
-        <div class="modal-box">
-            <h3 style="margin:0 0 15px 0">관리자 로그인</h3>
-            <p style="font-size:0.8rem; color:red;">※ 데이터 수정은 구글 시트에서 진행해 주세요.</p>
-            <input type="text" id="uid" placeholder="아이디">
-            <input type="password" id="upw" placeholder="비밀번호">
-            <button style="width:100%; padding:12px; background:#1a73e8; color:white; border:none; border-radius:6px; cursor:pointer;" onclick="doLogin()">로그인</button>
-            <button onclick="closeLogin()" style="width:100%; background:none; border:none; margin-top:10px; color:#666; cursor:pointer;">닫기</button>
+<div id="mainContent" style="display:none;">
+    <div class="paper-view">
+        <div id="paperContent">
+            <div class="empty-state">왼쪽에서 채점할 학생을 선택해주세요.</div>
         </div>
     </div>
+    
+    <div class="grading-panel">
+        <h2>✏️ 평가표 입력</h2>
+        <input type="hidden" id="currentRow">
+        <div class="form-group">
+            <label>(1) 수학적 특징 해석 (20점)</label>
+            <input type="number" id="score1" max="20" min="0">
+        </div>
+        <div class="form-group">
+            <label>(2) 실세계 현상 연관성 (20점)</label>
+            <input type="number" id="score2" max="20" min="0">
+        </div>
+        <div class="form-group">
+            <label>(3) 가치 성찰 및 논리성 (10점)</label>
+            <input type="number" id="score3" max="10" min="0">
+        </div>
+        <div class="form-group">
+            <label>💬 교사 코멘트 (피드백)</label>
+            <textarea id="feedback" rows="4" placeholder="학생에게 전달할 피드백..."></textarea>
+        </div>
+        <button class="btn-submit" onclick="submitGrade()">점수 저장하기</button>
+    </div>
+</div>
 
-    <script>
-        // 🔗 1. 구글 시트 CSV 웹 게시 URL
-        const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTDcg_fN_hIBGnVCsZzn3iprxtzdKknxeR9b1cLQykgUSSXe2K5m8-7ph7uJxHPq8sfZ2Nv5aVb4wOe/pub?output=csv";
+<script>
+    // [중요] 아래에 선생님의 Google Apps Script 웹 앱 주소를 붙여넣으세요!
+    const SCRIPT_URL = "여기에_선생님의_웹앱_주소를_넣으세요";
+    
+    let allData = [];
 
-        let db = []; 
-        let curGroupIdx = null;
+    window.onload = fetchData;
 
-        // 2. 데이터 가져오기 및 파싱
-        async function fetchSheetData() {
-            const loadingEl = document.getElementById('loading');
-            try {
-                const response = await fetch(SHEET_CSV_URL);
-                if (!response.ok) throw new Error("네트워크 응답 없음");
-                
-                const csvData = await response.text();
-                
-                // 줄바꿈 처리 및 빈 행 제거
-                const rows = csvData.split(/\r?\n/).filter(row => row.trim() !== "");
-                const groupedData = {};
+    async function fetchData() {
+        document.getElementById('studentList').innerHTML = '';
+        document.getElementById('loading').style.display = 'block';
+        document.getElementById('mainContent').style.display = 'none';
 
-                // 2행(index 1)부터 데이터 처리
-                for (let i = 1; i < rows.length; i++) {
-                    // CSV 파싱 정규식: 쉼표로 분리하되 따옴표 안의 쉼표는 무시
-                    const cols = rows[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
-                    
-                    if (cols.length >= 3) {
-                        const groupName = cols[0].replace(/^"|"$/g, "").trim();   // A: 교과군
-                        const subjectName = cols[1].replace(/^"|"$/g, "").trim(); // B: 과목명
-                        const fileName = cols[2].replace(/^"|"$/g, "").trim();    // C: 파일명
-
-                        if (!groupName || !subjectName) continue;
-
-                        if (!groupedData[groupName]) {
-                            groupedData[groupName] = { name: groupName, subjects: [] };
-                        }
-                        
-                        groupedData[groupName].subjects.push({ 
-                            n: subjectName, 
-                            url: "pdfs/" + fileName 
-                        });
-                    }
-                }
-
-                db = Object.values(groupedData);
-                
-                if (db.length === 0) {
-                    loadingEl.innerHTML = "시트에 데이터가 없거나 형식이 맞지 않습니다.<br>A열:교과군, B열:과목명, C열:파일명을 확인하세요.";
-                } else {
-                    renderGroups();
-                    loadingEl.style.display = 'none';
-                }
-            } catch (error) {
-                console.error("실패:", error);
-                loadingEl.innerText = "데이터 로드 에러: " + error.message;
-            }
-        }
-
-        // 3. 교과군 목록 렌더링
-        function renderGroups() {
-            const container = document.getElementById('group-list');
-            container.innerHTML = db.map((g, i) => `
-                <div class="item ${curGroupIdx === i ? 'active' : ''}" onclick="selectGroup(${i})">
-                    <span>${g.name}</span>
-                    <span>❯</span>
-                </div>
-            `).join('');
-        }
-
-        // 4. 교과군 선택 시 과목 목록 렌더링
-        function selectGroup(idx) {
-            curGroupIdx = idx;
-            renderGroups();
-            const subContainer = document.getElementById('subject-list');
-            subContainer.innerHTML = db[idx].subjects.map((s, si) => `
-                <div class="item" onclick="showPDF('${s.url}', this)">
-                    <span>${s.n}</span>
-                    <span>❯</span>
-                </div>
-            `).join('');
+        try {
+            const response = await fetch(SCRIPT_URL);
+            const data = await response.json();
+            allData = data.filter(d => d['반'] && d['이름']); // 유효한 데이터만 필터링
             
-            // 모바일용 스크롤
-            if(window.innerWidth <= 768) {
-                document.getElementById('col-subject').scrollIntoView({behavior: 'smooth'});
+            // 반, 번호 순으로 정렬
+            allData.sort((a, b) => {
+                if(a['반'] !== b['반']) return a['반'].localeCompare(b['반']);
+                return parseInt(a['번호']) - parseInt(b['번호']);
+            });
+
+            renderList();
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('mainContent').style.display = 'flex';
+        } catch (error) {
+            alert("데이터를 불러오는데 실패했습니다. 주소를 다시 확인해주세요.");
+        }
+    }
+
+    function renderList() {
+        const list = document.getElementById('studentList');
+        list.innerHTML = '';
+        allData.forEach((item, index) => {
+            const li = document.createElement('li');
+            li.className = 'student-item';
+            const isGraded = item['총점'] !== undefined && item['총점'] !== "";
+            const badge = isGraded ? `<span class="badge-done">채점완료</span>` : `<span class="badge-wait">대기중</span>`;
+            li.innerHTML = `<div>${item['반']}-${item['번호']} ${item['이름']}</div> ${badge}`;
+            li.onclick = () => selectStudent(index, li);
+            list.appendChild(li);
+        });
+    }
+
+    function selectStudent(index, listItem) {
+        document.querySelectorAll('.student-item').forEach(el => el.classList.remove('active'));
+        listItem.classList.add('active');
+
+        const student = allData[index];
+        document.getElementById('currentRow').value = student.row;
+        
+        // 답안지 렌더링
+        const paper = document.getElementById('paperContent');
+        paper.innerHTML = `
+            <h2>${student['기사제목']}</h2>
+            <div class="meta-info">제출일시: ${new Date(student['제출시간']).toLocaleString()} | ${student['반']}반 ${student['번호']}번 ${student['이름']} | 영역: <b>${student['분석영역']}</b></div>
+            
+            <div class="formula-box">
+                ${student['산출된 함수식']}
+            </div>
+
+            <div class="answer-box">
+                <div class="answer-title">(1) 그래프의 수학적 특징</div>
+                ${student['(1) 수학적 특징']}
+            </div>
+            <div class="answer-box">
+                <div class="answer-title">(2) 실세계 현상 해석</div>
+                ${student['(2) 현상 해석']}
+            </div>
+            <div class="answer-box">
+                <div class="answer-title">(3) 수학적 유용성 및 가치 성찰</div>
+                ${student['(3) 가치 성찰']}
+            </div>
+        `;
+        // 수식 렌더링 실행
+        MathJax.typesetPromise([paper]);
+
+        // 채점 패널 기존 점수 불러오기
+        document.getElementById('score1').value = student['채점_특징(20점)'] || '';
+        document.getElementById('score2').value = student['채점_해석(20점)'] || '';
+        document.getElementById('score3').value = student['채점_성찰(10점)'] || '';
+        document.getElementById('feedback').value = student['교사 피드백'] || '';
+    }
+
+    async function submitGrade() {
+        const row = document.getElementById('currentRow').value;
+        if (!row) return alert("채점할 학생을 먼저 선택하세요.");
+
+        const btn = document.querySelector('.btn-submit');
+        btn.innerText = "저장 중...";
+        btn.disabled = true;
+
+        const payload = {
+            action: "grade",
+            row: parseInt(row),
+            score1: document.getElementById('score1').value || 0,
+            score2: document.getElementById('score2').value || 0,
+            score3: document.getElementById('score3').value || 0,
+            feedback: document.getElementById('feedback').value
+        };
+
+        try {
+            await fetch(SCRIPT_URL, {
+                method: 'POST',
+                mode: 'no-cors',
+                body: JSON.stringify(payload)
+            });
+            alert("채점 결과가 저장되었습니다.");
+            
+            // 로컬 데이터도 업데이트하여 화면 반영
+            const student = allData.find(d => d.row === parseInt(row));
+            student['채점_특징(20점)'] = payload.score1;
+            student['채점_해석(20점)'] = payload.score2;
+            student['채점_성찰(10점)'] = payload.score3;
+            student['총점'] = Number(payload.score1) + Number(payload.score2) + Number(payload.score3);
+            student['교사 피드백'] = payload.feedback;
+            
+            renderList(); // 뱃지 상태 업데이트
+            
+            // 다음 학생 자동으로 선택해주기 (편의성)
+            const currentIndex = allData.findIndex(d => d.row === parseInt(row));
+            if(currentIndex < allData.length - 1) {
+                const nextLi = document.querySelectorAll('.student-item')[currentIndex + 1];
+                selectStudent(currentIndex + 1, nextLi);
             }
+            
+        } catch (e) {
+            alert("저장 중 오류가 발생했습니다.");
+        } finally {
+            btn.innerText = "점수 저장하기";
+            btn.disabled = false;
         }
-
-        // 5. 과목 선택 시 PDF 표시
-        function showPDF(url, el) {
-            document.querySelectorAll('#subject-list .item').forEach(i => i.classList.remove('active'));
-            el.classList.add('active');
-            document.getElementById('pdf-view').src = url;
-
-            if(window.innerWidth <= 768) {
-                document.getElementById('col-detail').scrollIntoView({behavior: 'smooth'});
-            }
-        }
-
-        function openLogin() { document.getElementById('login-modal').style.display='flex'; }
-        function closeLogin() { document.getElementById('login-modal').style.display='none'; }
-        function doLogin() {
-            if(document.getElementById('uid').value==='admin' && document.getElementById('upw').value==='1234') {
-                alert("관리자 확인되었습니다. 시트에서 수정 후 새로고침하세요.");
-                closeLogin();
-            } else { alert("로그인 실패"); }
-        }
-
-        // 페이지 시작
-        fetchSheetData();
-    </script>
+    }
+</script>
 </body>
 </html>
